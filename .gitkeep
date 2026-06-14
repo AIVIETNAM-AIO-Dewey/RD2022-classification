@@ -1,0 +1,8 @@
+data/raw/.gitkeep
+data/processed/.gitkeep
+data/splits/.gitkeep
+
+outputs/models/.gitkeep
+outputs/figures/.gitkeep
+outputs/reports/.gitkeep
+outputs/logs/.gitkeep
