@@ -6,7 +6,7 @@ Dự án nghiên cứu và thử nghiệm tác động của các kỹ thuật t
 
 Để thiết lập môi trường, tìm hiểu cấu trúc thư mục, quy trình chạy thực nghiệm và cách đóng góp vào dự án, vui lòng đọc:
 
-👉 **[Hướng Dẫn Sử Dụng & Đóng Góp (CONTRIBUTION.md)](file:///d:/Users/Documents/Project/image-preprocessing-classification/CONTRIBUTION.md)**
+👉 **[Hướng Dẫn Sử Dụng & Đóng Góp (CONTRIBUTING.md)](./CONTRIBUTING.md)**
 
 ## 📂 Tổng quan cấu trúc thư mục
 
