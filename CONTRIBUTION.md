@@ -1,19 +1,9 @@
 # Hướng Dẫn Đóng Góp & Hướng Dẫn Sử Dụng (Contributing & Usage Guide)
 
-Chào mừng bạn đến với dự án **Image Preprocessing & Classification**. Dưới đây là đánh giá cấu trúc thư mục hiện tại, hướng dẫn chi tiết về chức năng của từng thư mục, và quy trình sử dụng/đóng góp vào dự án Python Machine Learning này.
 
----
 
-## 1. Đánh Giá Cấu Trúc Dự Án
 
-Cấu trúc dự án hiện tại **rất tốt và chuẩn hóa** đối với một dự án Python Machine Learning & Computer Vision. Việc chia tách rõ ràng giữa cấu hình (`configs`), dữ liệu (`data`), mã nguồn (`src`), thực nghiệm nhanh (`notebooks`), và kết quả (`outputs`) giúp dự án:
-- **Dễ dàng quản lý và mở rộng** khi thêm các kiến trúc mô hình hoặc phương pháp tiền xử lý mới.
-- **Độc lập và tái sử dụng mã nguồn** nhờ cấu trúc module hóa trong `src`.
-- **Dễ dàng tái lập kết quả thực nghiệm** (Reproducibility) thông qua việc lưu cấu hình độc lập.
-
----
-
-## 2. Chi Tiết Vai Trò Của Từng Thư Mục
+## 1. Chi Tiết Vai Trò Của Từng Thư Mục
 
 Dưới đây là chi tiết những gì mỗi thư mục cần chứa và quản lý:
 
@@ -28,9 +18,9 @@ Dưới đây là chi tiết những gì mỗi thư mục cần chứa và quả
 │   ├── models/         # Các checkpoint, tệp trọng số mô hình đã huấn luyện (.pth, .onnx)
 │   ├── plots/          # Biểu đồ loss, accuracy, confusion matrix, kết quả trực quan hóa
 │   └── logs/           # Nhật ký chạy (logs), TensorBoard logs
-├── src/                # Mã nguồn chính của dự án (dưới dạng thư viện nội bộ)
-│   ├── preprocessing/  # Các kỹ thuật tiền xử lý ảnh (Resize, Contrast, Noise Reduction, Augmentation)
-│   ├── models/         # Định nghĩa các kiến trúc mạng Neural (Custom CNN, ResNet, MobileNet, v.v.)
+├── src/                # Mã nguồn chính của dự án 
+│   ├── preprocessing/  # Các kỹ thuật tiền xử lý ảnh 
+│   ├── models/         # Định nghĩa kiến trúc mạng Neural
 │   ├── training/       # Vòng lặp huấn luyện (train loop), hàm tối ưu (optimizer), loss function, dataloader
 │   └── evaluation/     # Các tập lệnh đánh giá mô hình, tính toán các chỉ số (Precision, Recall, F1, mAP)
 ├── experiments/        # Các kịch bản chạy thử nghiệm, so sánh các phiên bản tiền xử lý khác nhau
@@ -41,7 +31,7 @@ Dưới đây là chi tiết những gì mỗi thư mục cần chứa và quả
 
 ---
 
-## 3. Hướng Dẫn Sử Dụng & Luồng Phát Triển (Usage Workflow)
+## 2. Hướng Dẫn Sử Dụng & Luồng Phát Triển (Usage Workflow)
 
 Để phát triển hoặc chạy dự án, hãy tuân theo quy trình tiêu chuẩn dưới đây:
 
