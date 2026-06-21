@@ -12,6 +12,8 @@ from src.preprocessing.transforms import get_transforms
 from src.training.dataset import RDDDataset
 from src.models.baseline_cnn import get_model
 
+import os
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Evaluate a trained CNN model on the test set")
     parser.add_argument(
