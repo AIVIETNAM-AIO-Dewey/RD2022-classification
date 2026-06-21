@@ -114,7 +114,19 @@ def main():
     model = model.to(device)
     
     # Define Loss and Optimizer
-    criterion = nn.CrossEntropyLoss()
+    if config.get("use_class_weights", False):
+        labels = train_dataset.labels
+        class_counts = [labels.count(i) for i in range(config["num_classes"])]
+        print(f"Class counts in training set: {class_counts}")
+        
+        # Calculate weights: total_samples / (num_classes * class_count)
+        total_samples = len(labels)
+        class_weights = [total_samples / (config["num_classes"] * count) if count > 0 else 1.0 for count in class_counts]
+        class_weights = torch.tensor(class_weights, dtype=torch.float).to(device)
+        print(f"Calculated class weights: {class_weights}")
+        criterion = nn.CrossEntropyLoss(weight=class_weights)
+    else:
+        criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(
         model.parameters(),
         lr=config["learning_rate"],
