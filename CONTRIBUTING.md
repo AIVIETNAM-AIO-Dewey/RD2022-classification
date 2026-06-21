@@ -1,90 +1,99 @@
 # Hướng Dẫn Đóng Góp & Hướng Dẫn Sử Dụng (Contributing & Usage Guide)
 
+Chào mừng bạn đến với dự án **Image Preprocessing & Classification**. Dưới đây là mô tả chi tiết cấu trúc thư mục, hướng dẫn tải dữ liệu từ Google Drive, xử lý cắt ảnh (crop patches), huấn luyện và chạy baseline.
 
-
+---
 
 ## 1. Chi Tiết Vai Trò Của Từng Thư Mục
 
-Dưới đây là chi tiết những gì mỗi thư mục cần chứa và quản lý:
+Dưới đây là sơ đồ tổ chức thư mục của dự án:
 
 ```text
-├── configs/            # Chứa các tệp cấu hình (YAML, JSON)
-├── data/               # Chứa dữ liệu đầu vào (không đưa lên Git)
-│   ├── raw/            # Dữ liệu gốc chưa qua xử lý (ví dụ: ảnh RDD2022 gốc)
-│   ├── processed/      # Dữ liệu sau khi đã chạy qua các bước tiền xử lý
-│   └── external/       # Dữ liệu bổ sung hoặc trọng số mô hình tải về từ bên ngoài
-├── notebooks/          # Jupyter Notebooks phục vụ cho EDA, thử nghiệm nhanh
-├── outputs/            # Kết quả đầu ra của quá trình huấn luyện và đánh giá
-│   ├── models/         # Các checkpoint, tệp trọng số mô hình đã huấn luyện (.pth, .onnx)
-│   ├── plots/          # Biểu đồ loss, accuracy, confusion matrix, kết quả trực quan hóa
-│   └── logs/           # Nhật ký chạy (logs), TensorBoard logs
-├── src/                # Mã nguồn chính của dự án 
-│   ├── preprocessing/  # Các kỹ thuật tiền xử lý ảnh 
-│   ├── models/         # Định nghĩa kiến trúc mạng Neural
-│   ├── training/       # Vòng lặp huấn luyện (train loop), hàm tối ưu (optimizer), loss function, dataloader
-│   └── evaluation/     # Các tập lệnh đánh giá mô hình, tính toán các chỉ số (Precision, Recall, F1, mAP)
-├── experiments/        # Các kịch bản chạy thử nghiệm, so sánh các phiên bản tiền xử lý khác nhau
-├── .gitignore          # Cấu hình bỏ qua các thư mục nặng như data/, outputs/, venv/
-├── README.md           # Giới thiệu tổng quan về dự án và kết quả đạt được
-└── CONTRIBUTION.md     # Hướng dẫn chi tiết dành cho nhà phát triển (tệp này)
+├── configs/            # Chứa các tệp cấu hình thực nghiệm (YAML)
+│   └── baseline.yaml            # Cấu hình baseline (Resize + Normalize)
+├── data/               # Chứa dữ liệu đầu vào (được đưa vào .gitignore)
+│   ├── raw/            # Chứa dữ liệu gốc (tải và giải nén từ Drive)
+│   └── processed/      # Chứa các patch ảnh cắt từ bounding box chia theo train/val/test
+├── notebooks/          # Jupyter Notebooks phục vụ EDA và thử nghiệm nhanh
+├── outputs/            # Kết quả đầu ra sau khi chạy huấn luyện
+│   └── baseline/       # Checkpoint và confusion matrix của baseline
+├── src/                # Mã nguồn chính của dự án
+│   ├── data/
+│   │   ├── download_data.py    # Tải và giải nén dữ liệu từ Google Drive
+│   │   └── process_patches.py  # Cắt ảnh hư hại từ file XML & phân chia dữ liệu
+│   ├── preprocessing/
+│   │   └── transforms.py       # Pipeline tiền xử lý ảnh (Đã cấu hình baseline, chứa TODOs thực nghiệm)
+│   ├── models/
+│   │   └── baseline_cnn.py     # Định nghĩa kiến trúc ResNet18
+│   ├── training/
+│   │   ├── dataset.py          # PyTorch Dataset load dữ liệu từ data/processed/
+│   │   └── train.py            # Vòng lặp huấn luyện mô hình
+│   └── evaluation/
+│       └── evaluate.py         # Đánh giá mô hình trên tập test & vẽ confusion matrix
+├── .gitignore          # Cấu hình bỏ qua data/, outputs/, venv/
+├── README.md           # Giới thiệu tổng quan về dự án
+└── CONTRIBUTING.md     # Hướng dẫn chi tiết dành cho nhà phát triển (tệp này)
 ```
 
 ---
 
 ## 2. Hướng Dẫn Sử Dụng & Luồng Phát Triển (Usage Workflow)
 
-Để phát triển hoặc chạy dự án, hãy tuân theo quy trình tiêu chuẩn dưới đây:
-
-### Bước 1: Thiết lập môi trường ảo
-Khởi tạo và kích hoạt môi trường ảo Python để cài đặt các thư viện cần thiết:
+### Bước 1: Thiết lập môi trường ảo và cài đặt thư viện
+Khởi tạo môi trường ảo Python và cài đặt các dependencies cần thiết từ `requirements.txt`:
 ```bash
 # Tạo môi trường ảo
 python -m venv venv
 
-# Kích hoạt trên Windows (PowerShell)
+# Kích hoạt môi trường ảo (Windows PowerShell)
 .\venv\Scripts\Activate.ps1
-# Hoặc trên Command Prompt
+# Hoặc Windows CMD:
 .\venv\Scripts\activate.bat
+# Hoặc Linux/macOS:
+source venv/bin/activate
 
-# Cài đặt các thư viện phụ thuộc (nếu có requirements.txt)
+# Cài đặt thư viện
 pip install -r requirements.txt
 ```
 
-### Bước 2: Chuẩn bị dữ liệu
-1. Tải bộ dữ liệu (ví dụ: RDD2022) và giải nén vào thư mục `data/raw/`.
-2. Giữ nguyên cấu trúc thư mục gốc của bộ dữ liệu để các script đọc đúng đường dẫn.
+### Bước 2: Tải và Giải nén dữ liệu tự động
+Chạy script để tải bộ dữ liệu RDD2022 India từ Google Drive của nhóm về thư mục `data/raw/`:
+```bash
+python src/data/download_data.py
+```
+*Lưu ý: Bộ dữ liệu sẽ tự động được tải và giải nén vào `data/raw/India/`.*
 
-### Bước 3: Thử nghiệm và Tiền xử lý dữ liệu
-1. Sử dụng thư mục `notebooks/` để tạo các file `.ipynb` phân tích dữ liệu (Exploratory Data Analysis - EDA) và thử nghiệm các thuật toán tiền xử lý ảnh.
-2. Khi các thuật toán tiền xử lý đã chạy ổn định, chuyển chúng thành các module Python sạch sẽ lưu trong `src/preprocessing/` (ví dụ: `src/preprocessing/enhancement.py`).
+### Bước 3: Cắt ảnh (Crop Patches) theo Bounding Box
+Bộ dữ liệu gốc của RDD2022 ở định dạng Object Detection (ảnh kèm file XML chứa bounding box). Chúng ta sẽ tiến hành chạy script để:
+1. Parse toàn bộ file XML.
+2. Cắt các vùng hư hại thành các patch ảnh kích thước nhỏ cho 3 lớp: `D00` (Nứt dọc), `D20` (Nứt lưới), `D40` (Ổ gà).
+3. Trích xuất ngẫu nhiên các vùng đường không có hư hại làm lớp `Normal`.
+4. Chia tập dữ liệu thành `train`, `val`, `test` ở cấp độ ảnh gốc để tránh rò rỉ dữ liệu (data leakage).
 
-### Bước 4: Định nghĩa cấu hình (Configuration)
-Trước khi chạy huấn luyện, tạo một tệp cấu hình trong thư mục `configs/` (ví dụ: `configs/baseline_config.yaml`) chứa các thông số:
-- Đường dẫn dữ liệu đầu vào/đầu ra.
-- Kích thước ảnh, phương pháp tiền xử lý áp dụng.
-- Hyperparameters: `batch_size`, `learning_rate`, `epochs`, `optimizer`, v.v.
+Chạy lệnh sau:
+```bash
+python src/data/process_patches.py
+```
+*Sau khi chạy, dữ liệu đã xử lý sẽ nằm trong `data/processed/` với các thư mục con tương ứng.*
 
-### Bước 5: Định nghĩa và Huấn luyện mô hình
-1. Định nghĩa cấu trúc mạng Neural trong `src/models/` (ví dụ: `src/models/cnn_classifier.py`).
-2. Viết mã nguồn huấn luyện tại `src/training/` và thực hiện huấn luyện bằng cách trỏ tới tệp cấu hình:
-   ```bash
-   python src/training/train.py --config configs/baseline_config.yaml
-   ```
-3. Trọng số mô hình sau khi huấn luyện sẽ tự động được lưu vào `outputs/models/`.
+### Bước 4: Chạy huấn luyện Baseline
+Chạy huấn luyện baseline (chỉ dùng Resize + Normalize):
+```bash
+python src/training/train.py --config configs/baseline.yaml
+```
+*Mô hình tốt nhất và lịch sử huấn luyện sẽ được lưu tại thư mục `outputs/baseline/`.*
 
-### Bước 6: Đánh giá mô hình
-1. Chạy các lệnh kiểm thử và đánh giá mô hình trên tập kiểm thử (test set) bằng mã nguồn trong `src/evaluation/`:
-   ```bash
-   python src/evaluation/evaluate.py --model_path outputs/models/best_model.pth --config configs/baseline_config.yaml
-   ```
-2. Lưu các biểu đồ kết quả trực quan (confusion matrix, PR curve) vào `outputs/plots/`.
+### Bước 5: Đánh giá mô hình Baseline
+Sau khi kết thúc huấn luyện, chạy script đánh giá trên tập kiểm thử (test set):
+```bash
+python src/evaluation/evaluate.py --config configs/baseline.yaml --model_path outputs/baseline/best_model.pth
+```
 
 ---
 
-## 4. Quy Định Đóng Góp Mã Nguồn (Contributing Guidelines)
+## 3. Thêm các kỹ thuật Tiền xử lý (Thử nghiệm của bạn)
 
-Nếu bạn muốn đóng góp mã nguồn hoặc phát triển tính năng mới:
-1. **Tuân thủ chuẩn Code Style**: Viết mã nguồn tuân thủ tiêu chuẩn [PEP 8](https://peps.python.org/pep-0008/). Sử dụng các công cụ format như `black` hoặc `flake8` trước khi commit.
-2. **Không commit dữ liệu và outputs**: Đảm bảo thư mục `data/` và `outputs/` luôn nằm trong `.gitignore` để tránh việc đẩy các file dung lượng lớn lên GitHub.
-3. **Tạo nhánh (Branch) mới**: Luôn tạo nhánh mới từ nhánh `main` khi phát triển tính năng: `git checkout -b feature/ten-tinh-nang`.
-4. **Viết Docstring và Chú thích**: Mỗi hàm, class mới cần có docstring mô tả chi tiết chức năng, tham số đầu vào và kiểu dữ liệu trả về.
+Để so sánh ảnh hưởng của **CLAHE**, **Gaussian Blur** hoặc **Data Augmentation** với Baseline:
+1. **Thêm logic tiền xử lý**: Mở tệp `src/preprocessing/transforms.py` và thêm phương thức xử lý mong muốn vào các phần `TODO`.
+2. **Tạo tệp cấu hình mới**: Tạo một tệp YAML mới trong thư mục `configs/` (ví dụ: `configs/experiment_clahe.yaml`), và chỉnh sửa trường `output_dir` (ví dụ: `outputs/experiment_clahe`) để không ghi đè lên kết quả baseline.
+3. **Chạy huấn luyện và đánh giá**: Sử dụng tệp cấu hình mới của bạn tương tự như cách chạy baseline.

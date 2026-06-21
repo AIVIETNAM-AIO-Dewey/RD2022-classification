@@ -1,0 +1,30 @@
+# Baseline Configuration (Resize + Normalization Only)
+
+# Experiment name
+exp_name: "baseline"
+
+# Data paths
+data_dir: "data/processed"
+output_dir: "outputs/baseline"
+
+# Model parameters
+model_name: "resnet18"
+pretrained: false
+num_classes: 4   # D00, D20, D40, Normal
+
+# Training parameters
+epochs: 15
+batch_size: 32
+learning_rate: 0.001
+weight_decay: 0.0001
+device: "cuda"   # "cuda" or "cpu"
+
+# Preprocessing parameters
+image_size: 224
+mean: [0.485, 0.456, 0.406]
+std: [0.229, 0.224, 0.225]
+
+# Preprocessing Flags
+use_clahe: false
+use_blur: false
+use_augmentation: false

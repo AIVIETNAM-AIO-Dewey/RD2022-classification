@@ -1,102 +1,76 @@
-```gitignore
 # ==========================================
 # Python
 # ==========================================
-
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyo
+*.pyd
+.Python
 
 # Virtual Environment
 venv/
 env/
 .venv/
+ENV/
 
 # ==========================================
 # Jupyter Notebook
 # ==========================================
-
 .ipynb_checkpoints/
+*.ipynb
 
 # ==========================================
 # IDE
 # ==========================================
-
 .vscode/
 .idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
 # ==========================================
 # Operating System
 # ==========================================
-
 .DS_Store
 Thumbs.db
+ehthumbs.db
+Desktop.ini
 
 # ==========================================
 # Logs
 # ==========================================
-
 logs/
 *.log
 
 # ==========================================
-# Model Checkpoints
+# Datasets (Chặn toàn bộ thư mục data)
 # ==========================================
+data/
 
+# ==========================================
+# Outputs (Chặn toàn bộ kết quả huấn luyện/checkpoint)
+# ==========================================
+outputs/
 *.pth
 *.pt
 *.h5
 *.ckpt
 *.onnx
 
-outputs/models/
-
 # ==========================================
-# Generated Outputs
+# Temporary Files & Cache
 # ==========================================
-
-outputs/figures/
-outputs/reports/
-outputs/logs/
-
-# ==========================================
-# Dataset
-# ==========================================
-
-data/raw/
-data/processed/
-data/splits/
-
-# Nếu muốn giữ cấu trúc thư mục nhưng không commit dữ liệu:
-# tạo file .gitkeep trong mỗi thư mục
-
-# ==========================================
-# Temporary Files
-# ==========================================
-
 *.tmp
 *.temp
 *.bak
-
-# ==========================================
-# Cache
-# ==========================================
-
 .cache/
 .pytest_cache/
 
 # ==========================================
 # TensorBoard
 # ==========================================
-
 runs/
 events.out.tfevents.*
-
-# ==========================================
-# Experiment Artifacts
-# ==========================================
-
-experiments/*/results.csv
-experiments/*/logs/
-experiments/*/figures/
-```
