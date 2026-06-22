@@ -103,16 +103,3 @@ def get_transforms(config):
         mean=mean, 
         std=std
     )
-
-
-test = r"/home/hoangLD/Desktop/AIVIETNAM/Module-01/AIO-CONQUER/image-preprocessing-classification/data/processed/test/D40/India_000470_damage_4_D40.jpg"
-img = cv2.imread(test)
-
-img_bw = apply_grayscale_bilateral(img)
-img_clahe = apply_clahe(img_bw)
-print(img)
-img_padding = apply_letterbox_resize(img_clahe)
-
-cv2.imshow("Result", img_padding)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
