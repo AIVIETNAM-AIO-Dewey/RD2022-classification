@@ -90,40 +90,18 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
     
     # Get transforms
-    train_transform = get_transforms(config, is_train=True)
-    val_transform = get_transforms(config, is_train=False)
+    transform = get_transforms(config)
     
     # Setup datasets & dataloaders
     data_dir = config["data_dir"]
-    train_dataset = RDDDataset(data_dir, "train", transform=train_transform)
-    val_dataset = RDDDataset(data_dir, "val", transform=val_transform)
+    train_dataset = RDDDataset(data_dir, "train", transform=transform)
+    val_dataset = RDDDataset(data_dir, "val", transform=transform)
     
     if len(train_dataset) == 0 or len(val_dataset) == 0:
         print("Error: Train or Val dataset is empty. Please run process_patches.py first.")
         return
         
-    # Setup sampler if using weighted sampler
-    sampler = None
-    shuffle = True
-    if config.get("use_weighted_sampler", False):
-        labels = train_dataset.labels
-        class_counts = [labels.count(i) for i in range(config["num_classes"])]
-        print(f"Class counts in training set for sampler: {class_counts}")
-        
-        # Calculate sample weights (inverse class frequency)
-        # Weight for class c is 1.0 / class_count_c
-        class_weights = [1.0 / count if count > 0 else 0.0 for count in class_counts]
-        sample_weights = [class_weights[label] for label in labels]
-        
-        sampler = torch.utils.data.WeightedRandomSampler(
-            weights=sample_weights,
-            num_samples=len(sample_weights),
-            replacement=True
-        )
-        shuffle = False  # sampler is mutually exclusive with shuffle
-        print("Using WeightedRandomSampler to prioritize minority classes in data loading.")
-        
-    train_loader = DataLoader(train_dataset, batch_size=config["batch_size"], shuffle=shuffle, sampler=sampler, num_workers=0)
+    train_loader = DataLoader(train_dataset, batch_size=config["batch_size"], shuffle=True, num_workers=0)
     val_loader = DataLoader(val_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=0)
     
     # Build model
@@ -142,56 +120,41 @@ def main():
         weight_decay=config["weight_decay"]
     )
     
-    # Setup learning rate scheduler
+    # Learning rate scheduler
     scheduler = None
     if config.get("use_scheduler", False):
         T_max = config.get("scheduler_T_max", config["epochs"])
         eta_min = config.get("scheduler_eta_min", 0.0)
         scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=T_max, eta_min=eta_min)
-        print(f"Using CosineAnnealingLR scheduler with T_max={T_max}, eta_min={eta_min}")
+        print(f"Using CosineAnnealingLR scheduler (T_max={T_max}, eta_min={eta_min})")
+    
+    # Early stopping
+    patience = config.get("early_stopping_patience", 0)  # 0 = disabled
+    epochs_no_improve = 0
     
     # History logs
     history = {
         "train_loss": [],
         "train_acc": [],
         "val_loss": [],
-        "val_acc": [],
-        "lr": []
+        "val_acc": []
     }
     
     best_val_acc = 0.0
-    min_train_loss = float('inf')
     
     # Train loop
     epochs = config["epochs"]
     for epoch in range(1, epochs + 1):
-        # Get current learning rate before epoch
         current_lr = optimizer.param_groups[0]['lr']
         
         train_loss, train_acc = train_epoch(model, train_loader, criterion, optimizer, device)
         val_loss, val_acc = val_epoch(model, val_loader, criterion, device)
-        
-        # Check for abnormal loss (NaN, Inf, or sudden explosion/spike)
-        import math
-        if math.isnan(train_loss) or math.isinf(train_loss):
-            print(f"\n[ERROR] Loss became abnormal ({train_loss}) at epoch {epoch}. Stopping training to prevent model corruption.")
-            break
-            
-        if config.get("stop_on_loss_spike", False):
-            spike_factor = config.get("loss_spike_factor", 5.0)
-            if train_loss < min_train_loss:
-                min_train_loss = train_loss
-            elif epoch > 3 and train_loss > min_train_loss * spike_factor:
-                print(f"\n[WARNING] Loss spiked abnormally from minimum {min_train_loss:.4f} to {train_loss:.4f} "
-                      f"(exceeded spike factor threshold of {spike_factor}x). Stopping training.")
-                break
         
         # Record history
         history["train_loss"].append(train_loss)
         history["train_acc"].append(train_acc)
         history["val_loss"].append(val_loss)
         history["val_acc"].append(val_acc)
-        history["lr"].append(current_lr)
         
         print(f"Epoch [{epoch}/{epochs}] "
               f"LR: {current_lr:.6f} | "
@@ -201,19 +164,27 @@ def main():
         # Checkpoint: Save best model
         if val_acc > best_val_acc:
             best_val_acc = val_acc
+            epochs_no_improve = 0
             best_model_path = output_dir / "best_model.pth"
             torch.save(model.state_dict(), best_model_path)
             print(f"  => Saved new best model checkpoint (Val Acc: {best_val_acc*100:.2f}%)")
-            
+        else:
+            epochs_no_improve += 1
+        
         # Step the scheduler
         if scheduler is not None:
             scheduler.step()
+        
+        # Early stopping check
+        if patience > 0 and epochs_no_improve >= patience:
+            print(f"\n[Early Stopping] Val accuracy did not improve for {patience} epochs. Stopping.")
+            break
             
     # Save training history
     with open(output_dir / "history.json", "w") as f:
         json.dump(history, f, indent=4)
         
-    print(f"--- Training Completed. Results saved to {output_dir} ---")
+    print(f"--- Training Completed. Best Val Acc: {best_val_acc*100:.2f}%. Results saved to {output_dir} ---")
 
 if __name__ == "__main__":
     main()

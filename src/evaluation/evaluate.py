@@ -88,7 +88,7 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() and config.get("device", "cuda") == "cuda" else "cpu")
     
     # Load dataset
-    test_transform = get_transforms(config, is_train=False)
+    test_transform = get_transforms(config)
     test_dataset = RDDDataset(config["data_dir"], "test", transform=test_transform)
     test_loader = DataLoader(test_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=0)
     
