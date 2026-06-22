@@ -1,42 +1,80 @@
-import albumentations as A
-from albumentations.pytorch import ToTensorV2
+import cv2
 import numpy as np
+from torchvision import transforms as T
 
-def get_transforms(config, is_train=True):
-    """
-    Builds the image preprocessing pipeline based on configuration.
-    
-    Args:
-        config (dict): Configuration dictionary containing preprocessing options.
-        is_train (bool): If True, applies data augmentations (if enabled).
+
+# Pixel Preprocessing
+
+def apply_clahe(image, clip_limit=2.0, tile_grid_size=(8, 8), **kwargs):
+    return image
+
+
+def apply_grayscale_bilateral(image, d=9, sigma_color=75, sigma_space=75, **kwargs):
+    return image
+
+
+# Geometric Preprocessing
+
+def apply_letterbox_resize(image, target_size=224, **kwargs):
+    return image
+
+# PIPELINE TRANSFORMS
+
+
+class OpenCVPreprocessingPipeline:
+    def __init__(self, mode, image_size, params, mean, std):
+        self.mode = mode
+        self.image_size = image_size
+        self.params = params
         
-    Returns:
-        albumentations.Compose: Preprocessing transform pipeline.
-    """
-    transforms_list = []
-    
-    # TODO: [Thực nghiệm 1] Thêm CLAHE (Contrast Limited Adaptive Histogram Equalization) vào đây
-    # Ví dụ: transforms_list.append(A.CLAHE(...))
-    
-    # TODO: [Thực nghiệm 2] Thêm Gaussian Blur vào đây
-    # Ví dụ: transforms_list.append(A.GaussianBlur(...))
-    
-    # TODO: [Thực nghiệm 3] Thêm Data Augmentation (chỉ chạy trong training mode) vào đây
-    # Ví dụ:
-    # if is_train:
-    #     transforms_list.extend([A.HorizontalFlip(...), ...])
+        # PyTorch transforms (To Tensor converting to 0.0-1.0, and Normalize)
+        self.pytorch_transform = T.Compose([
+            T.ToTensor(),                   
+            T.Normalize(mean=mean, std=std) 
+        ])
+
+    def __call__(self, image, **kwargs):
+
+        if self.mode == "clahe":
+            clahe_params = self.params.get("clahe", {})
+            image = apply_clahe(image, **clahe_params)
+            
+        elif self.mode == "grayscale_bilateral":
+            gb_params = self.params.get("grayscale_bilateral", {})
+            image = apply_grayscale_bilateral(image, **gb_params)
+            
+        elif self.mode == "combined":
+            clahe_params = self.params.get("clahe", {})
+            gb_params = self.params.get("grayscale_bilateral", {})
+            # Grayscale -> CLAHE -> Bilateral Filter
+            image = apply_grayscale_bilateral(image, **gb_params)
+            image = apply_clahe(image, **clahe_params)
+
+        if self.mode == "letterbox" or self.mode == "combined":
+            lb_params = self.params.get("letterbox", {})
+            image = apply_letterbox_resize(image, target_size=self.image_size, **lb_params)
+        else:
+
+            image = cv2.resize(image, (self.image_size, self.image_size))
+
+
+        image = self.pytorch_transform(image)
         
-    # --- BASELINE TRANSFORMS (Mặc định luôn chạy) ---
-    # 1. Resize ảnh
+        return {"image": image}
+
+
+def get_transforms(config):
+    mode = config.get("preprocessing_mode", "baseline")
     image_size = config.get("image_size", 224)
-    transforms_list.append(A.Resize(image_size, image_size))
+    params = config.get("preprocessing_params", {})
     
-    # 2. Chuẩn hóa ảnh (Standardization & Normalization)
     mean = config.get("mean", [0.485, 0.456, 0.406])
     std = config.get("std", [0.229, 0.224, 0.225])
-    transforms_list.append(A.Normalize(mean=mean, std=std))
-    
-    # 3. Chuyển đổi thành PyTorch Tensor
-    transforms_list.append(ToTensorV2())
-    
-    return A.Compose(transforms_list)
+
+    return OpenCVPreprocessingPipeline(
+        mode=mode, 
+        image_size=image_size, 
+        params=params, 
+        mean=mean, 
+        std=std
+    )

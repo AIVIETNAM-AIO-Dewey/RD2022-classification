@@ -91,9 +91,15 @@ python src/evaluation/evaluate.py --config configs/baseline.yaml --model_path ou
 
 ---
 
-## 3. Thêm các kỹ thuật Tiền xử lý (Thử nghiệm của bạn)
+## 3. Thêm các kỹ thuật Tiền xử lý (Thử nghiệm)
 
-Để so sánh ảnh hưởng của **CLAHE**, **Gaussian Blur** hoặc **Data Augmentation** với Baseline:
-1. **Thêm logic tiền xử lý**: Mở tệp `src/preprocessing/transforms.py` và thêm phương thức xử lý mong muốn vào các phần `TODO`.
-2. **Tạo tệp cấu hình mới**: Tạo một tệp YAML mới trong thư mục `configs/` (ví dụ: `configs/experiment_clahe.yaml`), và chỉnh sửa trường `output_dir` (ví dụ: `outputs/experiment_clahe`) để không ghi đè lên kết quả baseline.
-3. **Chạy huấn luyện và đánh giá**: Sử dụng tệp cấu hình mới của bạn tương tự như cách chạy baseline.
+Để so sánh ảnh hưởng của **CLAHE**, **Resize Letterbox** hoặc **Grayscale + Bilateral Filter** với Baseline:
+
+1. **Implement hàm preprocessing**: Mở tệp `src/preprocessing/transforms.py` và hoàn thiện các hàm OpenCV (`apply_clahe`, `apply_letterbox_resize`, `apply_grayscale_bilateral`) bằng cách uncomment code gợi ý.
+2. **Chạy từng pipeline**: Mỗi pipeline đã có sẵn config riêng:
+   - Pipeline 1 (Letterbox): `python src/training/train.py --config configs/pipeline1_letterbox.yaml`
+   - Pipeline 2 (CLAHE): `python src/training/train.py --config configs/pipeline2_clahe.yaml`
+   - Pipeline 3 (Grayscale+Bilateral): `python src/training/train.py --config configs/pipeline3_grayscale_bilateral.yaml`
+   - Pipeline 4 (Kết hợp cả 3): `python src/training/train.py --config configs/pipeline4_combined.yaml`
+3. **Đánh giá**: Chạy evaluate tương tự, ví dụ: `python src/evaluation/evaluate.py --config configs/pipeline2_clahe.yaml --model_path outputs/pipeline2_clahe/best_model.pth`
+
