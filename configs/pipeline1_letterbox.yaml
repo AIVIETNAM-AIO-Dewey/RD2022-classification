@@ -1,0 +1,35 @@
+# Pipeline 1: Baseline + Resize Letterbox
+
+exp_name: "pipeline1_letterbox"
+
+data_dir: "data/processed"
+output_dir: "outputs/pipeline1_letterbox"
+
+model_name: "resnet18"
+pretrained: false
+num_classes: 4
+
+epochs: 30
+batch_size: 32
+learning_rate: 0.001
+weight_decay: 0.0001
+device: "cuda"
+
+# Learning rate scheduler
+use_scheduler: true
+scheduler_T_max: 30
+scheduler_eta_min: 0.000001
+
+# Early stopping
+early_stopping_patience: 5
+
+image_size: 224
+mean: [0.485, 0.456, 0.406]
+std: [0.229, 0.224, 0.225]
+
+preprocessing_mode: "letterbox"
+
+preprocessing_params:
+  letterbox:
+    border_mode: "constant"       # "constant" hoặc "reflect"
+    fill_value: [0, 0, 0]         # Màu padding RGB (đen)
