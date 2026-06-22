@@ -18,7 +18,6 @@ batch_size: 64
 learning_rate: 0.0005
 weight_decay: 0.001
 device: "cuda"   # "cuda" or "cpu"
-use_class_weights: true
 use_weighted_sampler: true
 
 # Learning rate scheduler
