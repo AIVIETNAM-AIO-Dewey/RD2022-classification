@@ -102,7 +102,28 @@ def main():
         print("Error: Train or Val dataset is empty. Please run process_patches.py first.")
         return
         
-    train_loader = DataLoader(train_dataset, batch_size=config["batch_size"], shuffle=True, num_workers=0)
+    # Setup sampler if using weighted sampler
+    sampler = None
+    shuffle = True
+    if config.get("use_weighted_sampler", False):
+        labels = train_dataset.labels
+        class_counts = [labels.count(i) for i in range(config["num_classes"])]
+        print(f"Class counts in training set for sampler: {class_counts}")
+        
+        # Calculate sample weights (inverse class frequency)
+        # Weight for class c is 1.0 / class_count_c
+        class_weights = [1.0 / count if count > 0 else 0.0 for count in class_counts]
+        sample_weights = [class_weights[label] for label in labels]
+        
+        sampler = torch.utils.data.WeightedRandomSampler(
+            weights=sample_weights,
+            num_samples=len(sample_weights),
+            replacement=True
+        )
+        shuffle = False  # sampler is mutually exclusive with shuffle
+        print("Using WeightedRandomSampler to prioritize minority classes in data loading.")
+        
+    train_loader = DataLoader(train_dataset, batch_size=config["batch_size"], shuffle=shuffle, sampler=sampler, num_workers=0)
     val_loader = DataLoader(val_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=0)
     
     # Build model
@@ -133,12 +154,21 @@ def main():
         weight_decay=config["weight_decay"]
     )
     
+    # Setup learning rate scheduler
+    scheduler = None
+    if config.get("use_scheduler", False):
+        T_max = config.get("scheduler_T_max", config["epochs"])
+        eta_min = config.get("scheduler_eta_min", 0.0)
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=T_max, eta_min=eta_min)
+        print(f"Using CosineAnnealingLR scheduler with T_max={T_max}, eta_min={eta_min}")
+    
     # History logs
     history = {
         "train_loss": [],
         "train_acc": [],
         "val_loss": [],
-        "val_acc": []
+        "val_acc": [],
+        "lr": []
     }
     
     best_val_acc = 0.0
@@ -146,6 +176,9 @@ def main():
     # Train loop
     epochs = config["epochs"]
     for epoch in range(1, epochs + 1):
+        # Get current learning rate before epoch
+        current_lr = optimizer.param_groups[0]['lr']
+        
         train_loss, train_acc = train_epoch(model, train_loader, criterion, optimizer, device)
         val_loss, val_acc = val_epoch(model, val_loader, criterion, device)
         
@@ -154,8 +187,10 @@ def main():
         history["train_acc"].append(train_acc)
         history["val_loss"].append(val_loss)
         history["val_acc"].append(val_acc)
+        history["lr"].append(current_lr)
         
         print(f"Epoch [{epoch}/{epochs}] "
+              f"LR: {current_lr:.6f} | "
               f"Train Loss: {train_loss:.4f} | Train Acc: {train_acc*100:.2f}% | "
               f"Val Loss: {val_loss:.4f} | Val Acc: {val_acc*100:.2f}%")
               
@@ -165,6 +200,10 @@ def main():
             best_model_path = output_dir / "best_model.pth"
             torch.save(model.state_dict(), best_model_path)
             print(f"  => Saved new best model checkpoint (Val Acc: {best_val_acc*100:.2f}%)")
+            
+        # Step the scheduler
+        if scheduler is not None:
+            scheduler.step()
             
     # Save training history
     with open(output_dir / "history.json", "w") as f:

@@ -13,12 +13,18 @@ pretrained: false
 num_classes: 4   # D00, D20, D40, Normal
 
 # Training parameters
-epochs: 15
-batch_size: 32
-learning_rate: 0.001
-weight_decay: 0.0001
+epochs: 30
+batch_size: 64
+learning_rate: 0.0005
+weight_decay: 0.001
 device: "cuda"   # "cuda" or "cpu"
 use_class_weights: true
+use_weighted_sampler: true
+
+# Learning rate scheduler
+use_scheduler: true
+scheduler_T_max: 30                  # T_max for CosineAnnealingLR (usually equal to total epochs)
+scheduler_eta_min: 0.000001          # Minimum learning rate (eta_min) for CosineAnnealingLR
 
 
 # Preprocessing parameters
