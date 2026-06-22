@@ -22,8 +22,12 @@ use_weighted_sampler: true
 
 # Learning rate scheduler
 use_scheduler: true
-scheduler_T_max: 30                  # T_max for CosineAnnealingLR (usually equal to total epochs)
-scheduler_eta_min: 0.000001          # Minimum learning rate (eta_min) for CosineAnnealingLR
+scheduler_T_max: 30
+scheduler_eta_min: 0.000001          
+
+# Early stopping & Abnormality checks
+stop_on_loss_spike: true
+loss_spike_factor: 5.0               # Stop if train loss spikes > 5x the minimum loss found so far (after epoch 3)
 
 
 # Preprocessing parameters
@@ -31,7 +35,6 @@ image_size: 224
 mean: [0.485, 0.456, 0.406]
 std: [0.229, 0.224, 0.225]
 
-# Preprocessing Flags
-use_clahe: false
-use_blur: false
+# Preprocessing mode: "baseline", "clahe", "letterbox", or "grayscale_bilateral"
+preprocessing_mode: "baseline"
 use_augmentation: false

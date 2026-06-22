@@ -160,6 +160,7 @@ def main():
     }
     
     best_val_acc = 0.0
+    min_train_loss = float('inf')
     
     # Train loop
     epochs = config["epochs"]
@@ -169,6 +170,21 @@ def main():
         
         train_loss, train_acc = train_epoch(model, train_loader, criterion, optimizer, device)
         val_loss, val_acc = val_epoch(model, val_loader, criterion, device)
+        
+        # Check for abnormal loss (NaN, Inf, or sudden explosion/spike)
+        import math
+        if math.isnan(train_loss) or math.isinf(train_loss):
+            print(f"\n[ERROR] Loss became abnormal ({train_loss}) at epoch {epoch}. Stopping training to prevent model corruption.")
+            break
+            
+        if config.get("stop_on_loss_spike", False):
+            spike_factor = config.get("loss_spike_factor", 5.0)
+            if train_loss < min_train_loss:
+                min_train_loss = train_loss
+            elif epoch > 3 and train_loss > min_train_loss * spike_factor:
+                print(f"\n[WARNING] Loss spiked abnormally from minimum {min_train_loss:.4f} to {train_loss:.4f} "
+                      f"(exceeded spike factor threshold of {spike_factor}x). Stopping training.")
+                break
         
         # Record history
         history["train_loss"].append(train_loss)
