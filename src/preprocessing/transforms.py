@@ -6,17 +6,42 @@ from torchvision import transforms as T
 # Pixel Preprocessing
 
 def apply_clahe(image, clip_limit=2.0, tile_grid_size=(8, 8), **kwargs):
-    return image
+    clahe = cv2.createCLAHE(clip_limit, tile_grid_size)
+    clahe_image = clahe.apply(image)
+    return clahe_image
 
 
 def apply_grayscale_bilateral(image, d=9, sigma_color=75, sigma_space=75, **kwargs):
-    return image
+    image_bw = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    bilateral_image = cv2.bilateralFilter(image_bw, d, sigma_color, sigma_space)
+    return bilateral_image 
 
 
 # Geometric Preprocessing
-
+# Padding Color : Black
 def apply_letterbox_resize(image, target_size=224, **kwargs):
-    return image
+    h,w = image.shape[:2]
+    scale = target_size / max(h,w)
+    new_h, new_w = int(h * scale), int(w * scale)
+    if scale < 1:
+        interp = cv2.INTER_AREA
+    else:
+        interp = cv2.INTER_LINEAR
+    resize_image = cv2.resize(image, (new_w, new_h), interpolation = interp)
+    pad_h, pad_w = target_size - new_h, target_size - new_w
+    top = pad_h // 2
+    bottom = pad_h - top
+    left = pad_w // 2
+    right = pad_w - left
+
+    letterbox_image = cv2.copyMakeBorder(
+        resize_image, 
+        top, bottom, left, right,
+        cv2.BORDER_CONSTANT,
+        value = 0
+    )
+
+    return letterbox_image
 
 # PIPELINE TRANSFORMS
 
