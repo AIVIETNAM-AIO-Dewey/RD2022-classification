@@ -81,7 +81,7 @@ class OpenCVPreprocessingPipeline:
 
         if self.mode == "clahe":
             clahe_params = self.params.get("clahe", {})
-            image = apply_clahe(image, **clahe_params)
+                image = apply_clahe(image, **clahe_params)
             
         elif self.mode == "grayscale_bilateral":
             gb_params = self.params.get("grayscale_bilateral", {})
@@ -100,7 +100,7 @@ class OpenCVPreprocessingPipeline:
         else:
 
             image = cv2.resize(image, (self.image_size, self.image_size))
-
+            
 
         image = self.pytorch_transform(image)
         
