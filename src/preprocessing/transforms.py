@@ -5,21 +5,40 @@ from torchvision import transforms as T
 
 # Pixel Preprocessing
 
-def apply_clahe(image, clip_limit=2.0, tile_grid_size=(8, 8), **kwargs):
+def apply_clahe(image, **kwargs):
+
+    clip_limit , tile_grid_size = kwargs.items()
+    lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+    lab_planes = cv2.split(lab)
     clahe = cv2.createCLAHE(clip_limit, tile_grid_size)
-    clahe_image = clahe.apply(image)
+    lab_planes[0] = clahe.apply(lab_planes[0])
+    lab = cv2.merge(lab_planes)
+    clahe_image = cv2.cvtColor(lab, cv2.COLOR2BGR)
+    
     return clahe_image
 
 
-def apply_grayscale_bilateral(image, d=9, sigma_color=75, sigma_space=75, **kwargs):
-    image_bw = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    bilateral_image = cv2.bilateralFilter(image_bw, d, sigma_color, sigma_space)
-    return bilateral_image 
+def apply_grayscale(image, d=9, **kwargs):
 
+    image_bw = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    return image_bw
+
+def apply_bilateral (image, **kwargs):
+
+    d, sigma_color, sigma_space = kwargs.items()
+    bilateral_image = cv2.bilateralFilter(image, d, sigma_color, sigma_space)
+    
+    return bilateral_image
 
 # Geometric Preprocessing
 # Padding Color : Black
 def apply_letterbox_resize(image, target_size=224, **kwargs):
+    mode, value = kwargs.items()
+    if mode == "reflect":
+        border_mode = cv2.BORDER_REFLECT
+    else: 
+        border_mode = cv2.BORDER_CONSTANT
     h,w = image.shape[:2]
     scale = target_size / max(h,w)
     new_h, new_w = int(h * scale), int(w * scale)
@@ -37,8 +56,8 @@ def apply_letterbox_resize(image, target_size=224, **kwargs):
     letterbox_image = cv2.copyMakeBorder(
         resize_image, 
         top, bottom, left, right,
-        cv2.BORDER_CONSTANT,
-        value = 0
+        border_mode,
+        value
     )
 
     return letterbox_image
