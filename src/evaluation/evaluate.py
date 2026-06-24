@@ -79,7 +79,7 @@ def main():
     args = parse_args()
     
     # Load configuration
-    with open(args.config, "r") as f:
+    with open(args.config, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
         
     print(f"--- Evaluating model for: {config['exp_name']} ---")
@@ -138,7 +138,7 @@ def main():
         "classification_report": report_dict
     }
     
-    with open(output_dir / "test_evaluation.json", "w") as f:
+    with open(output_dir / "test_evaluation.json", "w", encoding="utf-8") as f:
         json.dump(eval_results, f, indent=4)
         
     # Generate and save confusion matrix

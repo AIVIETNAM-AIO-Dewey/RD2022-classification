@@ -76,7 +76,7 @@ def main():
     args = parse_args()
     
     # Load configuration
-    with open(args.config, "r") as f:
+    with open(args.config, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
         
     print(f"--- Starting Experiment: {config['exp_name']} ---")
@@ -181,7 +181,7 @@ def main():
             break
             
     # Save training history
-    with open(output_dir / "history.json", "w") as f:
+    with open(output_dir / "history.json", "w", encoding="utf-8") as f:
         json.dump(history, f, indent=4)
         
     print(f"--- Training Completed. Best Val Acc: {best_val_acc*100:.2f}%. Results saved to {output_dir} ---")

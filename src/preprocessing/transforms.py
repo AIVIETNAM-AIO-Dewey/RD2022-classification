@@ -77,11 +77,10 @@ class OpenCVPreprocessingPipeline:
             T.Normalize(mean=mean, std=std) 
         ])
 
-    def __call__(self, image, **kwargs):
-
+    def preprocess_image(self, image):
         if self.mode == "clahe":
             clahe_params = self.params.get("clahe", {})
-                image = apply_clahe(image, **clahe_params)
+            image = apply_clahe(image, **clahe_params)
             
         elif self.mode == "grayscale_bilateral":
             gb_params = self.params.get("grayscale_bilateral", {})
@@ -98,12 +97,13 @@ class OpenCVPreprocessingPipeline:
             lb_params = self.params.get("letterbox", {})
             image = apply_letterbox_resize(image, target_size=self.image_size, **lb_params)
         else:
-
             image = cv2.resize(image, (self.image_size, self.image_size))
             
+        return image
 
+    def __call__(self, image, **kwargs):
+        image = self.preprocess_image(image)
         image = self.pytorch_transform(image)
-        
         return {"image": image}
 
 
