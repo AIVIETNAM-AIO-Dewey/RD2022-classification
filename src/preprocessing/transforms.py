@@ -6,8 +6,10 @@ from torchvision import transforms as T
 # Pixel Preprocessing
 
 def apply_clahe(image, **kwargs):
-
-    clip_limit , tile_grid_size = kwargs.values()
+    clip_limit = kwargs.get("clip_limit", 2.0)
+    tile_grid_size = kwargs.get("tile_grid_size", (8, 8))
+    if isinstance(tile_grid_size, list):
+        tile_grid_size = tuple(tile_grid_size)
     lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
     l, a, b = cv2.split(lab)
     clahe = cv2.createCLAHE(clip_limit, tile_grid_size)
@@ -18,23 +20,20 @@ def apply_clahe(image, **kwargs):
     return clahe_image
 
 def apply_bilateral (image, **kwargs):
-
-    d, sigma_color, sigma_space = kwargs.values()
+    d = kwargs.get("d", 9)
+    sigma_color = kwargs.get("sigma_color", 75)
+    sigma_space = kwargs.get("sigma_space", 75)
     bilateral_image = cv2.bilateralFilter(image, d, sigma_color, sigma_space)
     
     return bilateral_image
 
 def apply_grayscale(image):
-
     image_bw = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
     return image_bw
 
 def apply_grayscale_bilateral (image, **kwargs):
-    
     image_bw = apply_grayscale(image)
     bilateral_img = apply_bilateral(image_bw, **kwargs)
-
     return bilateral_img
 
 
@@ -42,8 +41,9 @@ def apply_grayscale_bilateral (image, **kwargs):
 # Geometric Preprocessing
 # Padding Color : Black
 def apply_letterbox_resize(image, target_size=224, **kwargs):
-    mode, value = kwargs.values()
-    if mode == "reflect":
+    border_mode_str = kwargs.get("border_mode", "constant")
+    value = kwargs.get("fill_value", [0, 0, 0])
+    if border_mode_str == "reflect":
         border_mode = cv2.BORDER_REFLECT
     else: 
         border_mode = cv2.BORDER_CONSTANT
@@ -112,6 +112,10 @@ class OpenCVPreprocessingPipeline:
 
     def __call__(self, image, **kwargs):
         image = self.preprocess_image(image)
+        if len(image.shape) == 2:
+            image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+        elif len(image.shape) == 3 and image.shape[2] == 1:
+            image = cv2.cvtColor(image[:, :, 0], cv2.COLOR_GRAY2RGB)
         image = self.pytorch_transform(image)
         return {"image": image}
 
