@@ -10,14 +10,14 @@ output_dir: "outputs/baseline"
 # Model parameters
 model_name: "resnet18"
 pretrained: false
-num_classes: 4   # D00, D20, D40, Normal
+num_classes: 4 # D00, D20, D40, Normal
 
 # Training parameters
 epochs: 30
 batch_size: 64
 learning_rate: 0.001
 weight_decay: 0.0001
-device: "cuda"   # "cuda" or "cpu"
+device: "cuda" # "cuda" or "cpu"
 
 # Learning rate scheduler
 use_scheduler: true
