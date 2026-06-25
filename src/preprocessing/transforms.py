@@ -85,8 +85,7 @@ class OpenCVPreprocessingPipeline:
             T.Normalize(mean=mean, std=std) 
         ])
 
-    def preprocess_image (self, image, **kwargs):
-
+    def preprocess_image(self, image):
         if self.mode == "clahe":
             clahe_params = self.params.get("clahe", {})
             image = apply_clahe(image, **clahe_params)
@@ -114,8 +113,7 @@ class OpenCVPreprocessingPipeline:
     def __call__(self, image, **kwargs):
         image = self.preprocess_image(image)
         image = self.pytorch_transform(image)
-        
-        return image
+        return {"image": image}
 
 
 def get_transforms(config):

@@ -14,18 +14,18 @@ num_classes: 4 # D00, D20, D40, Normal
 
 # Training parameters
 epochs: 30
-batch_size: 32
+batch_size: 64
 learning_rate: 0.001
 weight_decay: 0.0001
 device: "cuda" # "cuda" or "cpu"
 
 # Learning rate scheduler
 use_scheduler: true
-scheduler_T_max: 30 # Chu kỳ cosine annealing (thường = epochs)
-scheduler_eta_min: 0.000001 # Learning rate tối thiểu
+scheduler_T_max: 30                   
+scheduler_eta_min: 0.000001           
 
 # Early stopping
-early_stopping_patience: 5 # Dừng nếu val_acc không cải thiện sau N epochs
+early_stopping_patience: 5           
 
 # Preprocessing
 image_size: 224
