@@ -9,3 +9,6 @@ matplotlib
 pyyaml
 albumentations
 gdown
+matplotlib
+seaborn
+cv2
