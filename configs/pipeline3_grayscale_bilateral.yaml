@@ -31,6 +31,6 @@ preprocessing_mode: "grayscale_bilateral"
 
 preprocessing_params:
   grayscale_bilateral:
-    d: 9                          # Đường kính vùng lân cận pixel (5-9)
-    sigma_color: 75               # Sigma không gian màu
-    sigma_space: 75               # Sigma không gian tọa độ
+    d: 5                          # ĐÃ ĐỔI: Giảm vùng lấy mẫu để bắt cạnh sắc nét hơn (gốc: 9)
+    sigma_color: 20               # ĐÃ ĐỔI: Giảm để không làm xóa mờ vết nứt nhỏ (gốc: 75)
+    sigma_space: 20               # ĐÃ ĐỔI: Giảm mức độ làm mịn không gian (gốc: 75)

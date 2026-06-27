@@ -39,6 +39,6 @@ preprocessing_params:
     fill_value: [0, 0, 0]
 
   grayscale_bilateral:
-    d: 9
-    sigma_color: 75
-    sigma_space: 75
+    d: 5                          # ĐÃ ĐỔI: Giảm vùng lấy mẫu (gốc: 9)
+    sigma_color: 20               # ĐÃ ĐỔI: Giảm làm mịn màu để giữ vết nứt (gốc: 75)
+    sigma_space: 20               # ĐÃ ĐỔI: Giảm làm mịn không gian (gốc: 75)
