@@ -51,14 +51,15 @@ logs/
 /data/
 
 # ==========================================
-# Outputs (Chặn toàn bộ kết quả huấn luyện/checkpoint)
+# Outputs & Models (Chặn các file model/checkpoint)
 # ==========================================
-outputs/
 *.pth
 *.pt
 *.h5
 *.ckpt
 *.onnx
+*.safetensors
+*.bin
 
 # ==========================================
 # Temporary Files & Cache
