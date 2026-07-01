@@ -1,0 +1,288 @@
+
+===============================================================================================
+  METRICS COMPARISON TABLE
+===============================================================================================
+Pipeline            Accuracy (%)  Macro F1 (%)  F1-D00 (%)  F1-D20 (%)  F1-D40 (%)  F1-Normal (%)
+-------------------------------------------------------------------------------------------------
+Baseline            89.81         82.13         66.67       79.93       86.14       95.81        
+P1: Letterbox       86.79         71.37         63.98       48.54       73.26       99.71        
+P2: CLAHE           92.38         84.96         72.28       81.44       87.85       98.26        
+P3: Gray+Bilateral  88.62         81.44         72.03       76.4        82.28       95.06        
+P4: Combined        92.5          84.16         73.07       79.5        84.41       99.67        
+===============================================================================================
+
+============================================================================
+  KẾT LUẬN VỀ ÁP DỤNG PREPROCESSING
+  Road Damage Detection · ResNet-18 · 4 classes: D00 D20 D40 Normal
+============================================================================
+
+0. NHẬN XÉT & ĐÁNH GIÁ TỔNG QUAN
+----------------------------------------------------------------------------
+
+  [1] Accuracy cao nhưng không phản ánh đúng khả năng phát hiện hư hỏng
+      Baseline Accuracy = 89.8% nghe có vẻ tốt, nhưng Macro F1 chỉ
+      82.1% — chênh lệch 7.7pp. Nguyên nhân: class Normal
+      chiếm đa số mẫu, kéo Accuracy lên cao ngay cả khi model yếu ở D00/D20.
+      → Không nên dùng Accuracy làm tiêu chí chính để đánh giá bài toán này.
+
+  [2] D20: Precision cao nhưng Recall thấp — model bỏ sót nhiều vết nứt dọc
+      Baseline D20: Precision=87.8%  Recall=73.4%  (gap=14.4pp)
+      Model rất chắc chắn khi dự đoán D20 (ít false positive), nhưng bỏ qua
+      ~27% vết nứt dọc thực sự trong ảnh. Preprocessing cần tập trung
+      cải thiện Recall D20, không chỉ Precision.
+      → P2: CLAHE cải thiện Recall D20 tốt nhất: 80.8%
+
+  [3] CLAHE tăng Precision D00 nhưng không giải quyết được Recall
+      Baseline D00:  Precision=66.8%  Recall=66.5%
+      P2 CLAHE  D00: Precision=80.3%  Recall=65.7%  (Prec +13.5pp, Rec -0.8pp)
+      CLAHE giúp model tự tin hơn khi nhận ra D00 (ít nhầm D00 là class khác),
+      nhưng recall gần như không đổi — model vẫn bỏ sót số lượng D00 tương đương.
+      → P3 Gray+Bilateral là pipeline duy nhất cải thiện Recall D00 đáng kể:
+        Recall D00 = 74.6% (+8.0pp), dù Accuracy tổng thể thấp hơn Baseline.
+
+  [4] P1 Letterbox làm model bị bias mạnh về class Normal
+      P1 Letterbox: Recall Normal=99.9%  nhưng Recall D20=37.8%
+      Padding thêm vào ảnh (để giữ tỷ lệ khung hình) tạo ra vùng pixel đồng nhất,
+      khiến model dễ nhận ra ảnh 'clean' (Normal) hơn, còn các vết nứt mảnh
+      (D20) bị mất đặc trưng trong quá trình resize-after-pad.
+      → Letterbox KHÔNG phù hợp với bài toán phát hiện hư hỏng nhỏ.
+
+  [5] P4 Combined đạt Recall 100% trên Normal — đáng tin cậy nhất cho normal roads
+      P4 Recall Normal = 100.0% — mọi đoạn đường bình thường đều được
+      phân loại đúng, không có false alarm. Đây là điểm mạnh trong thực tế:
+      hệ thống sẽ không báo sai 'có hư hỏng' trên đường tốt.
+      Đánh đổi: F1-D40 giảm nhẹ (84.4% vs 86.1% Baseline).
+
+  [6] Không có pipeline nào giải quyết được hoàn toàn điểm yếu của Baseline
+      D00 vẫn là class khó nhất sau tất cả preprocessing (F1 max=73.1%),
+      và D20 Recall vẫn chưa vượt 81% ở bất kỳ pipeline nào.
+      → Preprocessing giúp ích nhưng không đủ: cần thêm data augmentation,
+        oversampling D00/D20, hoặc focal loss để giải quyết triệt để.
+
+1. HIỆU SUẤT BASELINE (Resize + Normalize only)
+----------------------------------------------------------------------------
+   Accuracy     : 89.81%
+   Macro F1     : 82.13%   (trung bình không trọng số qua 4 class)
+   Weighted F1  : 89.70%  (trọng số theo số mẫu mỗi class)
+   Số epoch     : 26  |  Best epoch: 16
+
+   Hiệu suất theo từng class:
+     D00       F1=66.7%  Prec=66.8%  Rec=66.5%  (n=245.0)
+     D20       F1=79.9%  Prec=87.8%  Rec=73.4%  (n=304.0)
+     D40       F1=86.1%  Prec=84.1%  Rec=88.3%  (n=461.0)
+     Normal    F1=95.8%  Prec=95.0%  Rec=96.6%  (n=1679.0)
+
+   → Class khó nhất: D00 (F1=66.7%) — cần cải thiện nhất.
+   → Class dễ nhất : Normal (F1=95.8%)
+
+   ⚠ LƯU Ý: MẤT CÂN BẰNG DỮ LIỆU (Class Imbalance)
+   Tổng mẫu test: 2689
+     D00       n=245    (9.1%)  ███
+     D20       n=304    (11.3%)  ███
+     D40       n=461    (17.1%)  █████
+     Normal    n=1679   (62.4%)  ████████████████████
+
+   Tỷ lệ mất cân bằng: Normal / D00 = 6.9x
+   → Normal chiếm 62.4% tổng mẫu, làm Accuracy bị kéo lên cao
+     ngay cả khi model dự đoán kém ở các class thiểu số (D00, D20).
+   → Macro F1 là chỉ số đáng tin cậy hơn Accuracy trong bộ dữ liệu này,
+     vì nó đánh giá đồng đều trên tất cả class bất kể số lượng mẫu.
+   → Preprocessing tác động MẠNH nhất ở các class thiểu số (D00, D20)
+     vì đây là các class model cần được hỗ trợ thêm từ chất lượng ảnh.
+
+
+2. SO SÁNH CHI TIẾT TỪNG PREPROCESSING PIPELINE
+----------------------------------------------------------------------------
+
+  [P1: Letterbox]  ✗ KÉM HƠN BASELINE
+    Accuracy    : 86.79%  (-3.02 pp so với Baseline)
+    Macro F1    : 71.37%  (-10.76 pp)
+    Weighted F1 : 86.07%  (-3.63 pp)
+    Epochs      : 9 epoch  |  Best epoch: 4
+    Val−Train Acc gap: +0.7pp (gần như không overfit)
+    Per-class F1:
+      D00      F1=64.0%  Prec=71.9%  Rec=57.7%  ↓-2.7pp
+      D20      F1=48.5%  Prec=67.8%  Rec=37.8%  ↓-31.4pp
+      D40      F1=73.3%  Prec=63.5%  Rec=86.6%  ↓-12.9pp
+      Normal   F1=99.7%  Prec=99.5%  Rec=99.9%  ↑+3.9pp
+    ✔ Cải thiện rõ rệt : Normal (+3.9pp)
+    ✘ Giảm sút rõ rệt  : D20 (-31.4pp), D40 (-12.9pp), D00 (-2.7pp)
+    Insight: Letterbox giữ tỷ lệ khung hình nhưng thêm padding,
+      có thể làm nhiễu loạn các đặc trưng cục bộ (texture vết nứt).
+      D20 giảm mạnh → padding ảnh hưởng đến phát hiện vết nứt dọc.
+
+  [P2: CLAHE]  ✓ TỐT HƠN BASELINE
+    Accuracy    : 92.38%  (+2.57 pp so với Baseline)
+    Macro F1    : 84.96%  (+2.82 pp)
+    Weighted F1 : 92.19%  (+2.49 pp)
+    Epochs      : 26 epoch  |  Best epoch: 19
+    Val−Train Acc gap: -3.1pp (overfit nhẹ)
+    Per-class F1:
+      D00      F1=72.3%  Prec=80.3%  Rec=65.7%  ↑+5.6pp
+      D20      F1=81.4%  Prec=82.1%  Rec=80.8%  ↑+1.5pp
+      D40      F1=87.8%  Prec=86.1%  Rec=89.6%  ↑+1.7pp
+      Normal   F1=98.3%  Prec=97.4%  Rec=99.1%  ↑+2.5pp
+    ✔ Cải thiện rõ rệt : D00 (+5.6pp), Normal (+2.5pp), D40 (+1.7pp), D20 (+1.5pp)
+    Insight: CLAHE tăng cường độ tương phản cục bộ, giúp model
+      nhìn rõ hơn các vết nứt mờ. Hiệu quả đồng đều trên cả 4 class.
+
+  [P3: Gray+Bilateral]  ✗ KÉM HƠN BASELINE
+    Accuracy    : 88.62%  (-1.19 pp so với Baseline)
+    Macro F1    : 81.44%  (-0.69 pp)
+    Weighted F1 : 88.70%  (-1.00 pp)
+    Epochs      : 30 epoch  |  Best epoch: 14
+    Val−Train Acc gap: -1.5pp (gần như không overfit)
+    Per-class F1:
+      D00      F1=72.0%  Prec=69.7%  Rec=74.6%  ↑+5.4pp
+      D20      F1=76.4%  Prec=78.0%  Rec=74.8%  ↓-3.5pp
+      D40      F1=82.3%  Prec=80.0%  Rec=84.7%  ↓-3.9pp
+      Normal   F1=95.1%  Prec=95.9%  Rec=94.2%    -0.8pp
+    ✔ Cải thiện rõ rệt : D00 (+5.4pp)
+    ✘ Giảm sút rõ rệt  : D40 (-3.9pp), D20 (-3.5pp)
+    Insight: Chuyển grayscale loại bỏ thông tin màu sắc (mặt đường)
+      có thể hữu ích. Bilateral filter khử nhiễu nhưng có thể làm mờ
+      các cạnh mảnh của vết nứt, gây giảm F1 ở D20, D40.
+
+  [P4: Combined]  ✓ TỐT HƠN BASELINE
+    Accuracy    : 92.50%  (+2.69 pp so với Baseline)
+    Macro F1    : 84.16%  (+2.03 pp)
+    Weighted F1 : 92.41%  (+2.71 pp)
+    Epochs      : 10 epoch  |  Best epoch: 6
+    Val−Train Acc gap: +0.5pp (gần như không overfit)
+    Per-class F1:
+      D00      F1=73.1%  Prec=78.4%  Rec=68.4%  ↑+6.4pp
+      D20      F1=79.5%  Prec=78.5%  Rec=80.5%    -0.4pp
+      D40      F1=84.4%  Prec=83.5%  Rec=85.4%  ↓-1.7pp
+      Normal   F1=99.7%  Prec=99.3%  Rec=100.0%  ↑+3.9pp
+    ✔ Cải thiện rõ rệt : D00 (+6.4pp), Normal (+3.9pp)
+    ✘ Giảm sút rõ rệt  : D40 (-1.7pp)
+    Insight: Kết hợp CLAHE + bilateral + letterbox tận dụng được
+      ưu điểm của nhiều kỹ thuật. Cân bằng tốt giữa tăng cường
+      tương phản và khử nhiễu, giải thích hiệu suất tổng thể cao nhất.
+
+
+3. PHÂN TÍCH TÁC ĐỘNG CỦA PREPROCESSING THEO TỪNG CLASS
+----------------------------------------------------------------------------
+
+  [D00]  (n=245.0 mẫu test)  Baseline F1=66.7%
+    P4: Combined            F1=73.1%  +6.4pp  ██████
+    P2: CLAHE               F1=72.3%  +5.6pp  █████
+    P3: Gray+Bilateral      F1=72.0%  +5.4pp  █████
+    P1: Letterbox           F1=64.0%  -2.7pp  ██
+    → Tốt nhất cho D00: P4: Combined (+6.4pp)
+    → Nên tránh cho D00: P1: Letterbox (-2.7pp)
+
+  [D20]  (n=304.0 mẫu test)  Baseline F1=79.9%
+    P2: CLAHE               F1=81.4%  +1.5pp  █
+    P4: Combined            F1=79.5%  -0.4pp  
+    P3: Gray+Bilateral      F1=76.4%  -3.5pp  ███
+    P1: Letterbox           F1=48.5%  -31.4pp  ███████████████████████████████
+    → Tốt nhất cho D20: P2: CLAHE (+1.5pp)
+    → Nên tránh cho D20: P1: Letterbox (-31.4pp)
+
+  [D40]  (n=461.0 mẫu test)  Baseline F1=86.1%
+    P2: CLAHE               F1=87.8%  +1.7pp  █
+    P4: Combined            F1=84.4%  -1.7pp  █
+    P3: Gray+Bilateral      F1=82.3%  -3.9pp  ███
+    P1: Letterbox           F1=73.3%  -12.9pp  ████████████
+    → Tốt nhất cho D40: P2: CLAHE (+1.7pp)
+    → Nên tránh cho D40: P1: Letterbox (-12.9pp)
+
+  [Normal]  (n=1679.0 mẫu test)  Baseline F1=95.8%
+    P1: Letterbox           F1=99.7%  +3.9pp  ███
+    P4: Combined            F1=99.7%  +3.9pp  ███
+    P2: CLAHE               F1=98.3%  +2.5pp  ██
+    P3: Gray+Bilateral      F1=95.1%  -0.8pp  
+    → Tốt nhất cho Normal: P1: Letterbox (+3.9pp)
+
+
+4. PHÂN TÍCH TỐC ĐỘ HỘI TỤ VÀ EARLY STOPPING
+----------------------------------------------------------------------------
+  Pipeline                      Epochs  BestEp  MinValLoss
+  -------------------------------------------------------
+  Baseline                      26      16      0.3444
+  P1: Letterbox                 9       4       0.2650 ← early stop
+  P2: CLAHE                     26      19      0.2256
+  P3: Gray+Bilateral            30      14      0.3332
+  P4: Combined                  10      6       0.1928 ← early stop
+
+  Nhận xét:
+  • P1: Letterbox, P4: Combined hội tụ nhanh (early stop < 15 epoch) → dữ liệu đã
+    'dễ học' hơn nhưng có thể underfit hoặc converge tại local minimum.
+  • P2: CLAHE, P3: Gray+Bilateral cần nhiều epoch hơn → mô hình học sâu hơn từ dữ liệu.
+
+
+5. PHÂN TÍCH OVERFITTING (Train vs Validation Accuracy tại Best Epoch)
+----------------------------------------------------------------------------
+  Pipeline                      TrainAcc  ValAcc  Gap(Val-Train)
+  ------------------------------------------------------------
+  Baseline                      92.6%     88.4%   -4.1pp
+  P1: Letterbox                 88.1%     88.9%   +0.7pp
+  P2: CLAHE                     94.9%     91.7%   -3.1pp
+  P3: Gray+Bilateral            89.1%     87.7%   -1.5pp
+  P4: Combined                  92.7%     93.2%   +0.5pp
+
+  Nhận xét: Gap âm (Val < Train) = dấu hiệu overfitting.
+  Gap dương (Val > Train) = regularization hiệu quả hoặc data augmentation.
+
+
+6. BẢNG XẾP HẠNG TỔNG HỢP
+----------------------------------------------------------------------------
+  Hạng   Pipeline                      Accuracy   MacroF1   ΔAcc    ΔF1
+  ------------------------------------------------------------------------
+  ⭐  #1  P2: CLAHE                   92.38%    84.96%   +2.57   +2.82
+  🥈  #2  P4: Combined                92.50%    84.16%   +2.69   +2.03
+  🥉  #3  P3: Gray+Bilateral          88.62%    81.44%   -1.19   -0.69
+   4.  #4  P1: Letterbox               86.79%    71.37%   -3.02   -10.76
+
+  Baseline (tham chiếu)                   89.81%    82.13%    —      —
+
+
+7. KẾT LUẬN VÀ KHUYẾN NGHỊ
+============================================================================
+
+  TỔNG QUAN:
+  Preprocessing CÓ hiệu quả trong 2/4 pipeline được thử nghiệm.
+  Pipeline có lợi  : P2: CLAHE, P4: Combined
+  Có hại           : P1: Letterbox, P3: Gray+Bilateral
+
+  PIPELINE TỐT NHẤT: P2: CLAHE
+  • Accuracy = 92.38%  (+2.57pp so với Baseline)
+  • Macro F1 = 84.96%  (+2.82pp so với Baseline)
+
+  PHÂN TÍCH TRADE-OFF: P2 CLAHE vs P4 Combined
+  --------------------------------------------------
+  Tiêu chí                           P2: CLAHE  P4: Combined
+  Accuracy (%)                           92.38         92.50
+  Macro F1 (%)                           84.96         84.16
+  F1-D00 (class thiểu số)                 72.3          73.1
+  F1-Normal (class đa số)                 98.3          99.7
+  Epochs training                           26            10
+
+  → Accuracy cao hơn  : P4: Combined
+  → Macro F1 cao hơn  : P2: CLAHE
+  → KHI NÀO CHỌN P2 CLAHE:
+    • Ưu tiên phát hiện đồng đều tất cả loại damage (Macro F1 cao hơn)
+    • Muốn tối ưu F1 trên class D20 (+1.5pp vs Baseline)
+    • Hệ thống cần train lâu hơn nhưng chấp nhận được (26 epochs)
+  → KHI NÀO CHỌN P4 Combined:
+    • Ưu tiên Accuracy tổng thể trên toàn bộ dataset
+    • Cần training nhanh hơn (chỉ 10 epochs, early stop)
+    • Ưu tiên cải thiện D00 (+6.4pp, tốt hơn CLAHE +5.6pp)
+    • Hệ thống thực tế cần deploy nhanh, ít tài nguyên preprocessing
+
+  KHUYẾN NGHỊ TRIỂN KHAI:
+  1. Nếu mục tiêu là phát hiện đều tất cả loại damage → dùng P2: CLAHE
+     (Macro F1 cao nhất: 84.96%, cải thiện đồng đều 4/4 class)
+  2. Nếu mục tiêu là accuracy tổng thể + training nhanh → dùng P4: Combined
+     (Accuracy cao nhất: 92.50%, chỉ cần 10 epochs)
+  ✗ KHÔNG nên dùng P1: Letterbox — làm giảm hiệu suất.
+  ✗ KHÔNG nên dùng P3: Gray+Bilateral — làm giảm hiệu suất.
+
+  HƯỚNG CẢI THIỆN TIẾP THEO:
+  • Tăng dữ liệu training (data augmentation: flip, rotate, brightness)
+  • Fine-tune với learning rate thấp hơn trên pipeline tốt nhất
+  • Thử nghiệm ensemble giữa Baseline và pipeline tốt nhất
+  • Tập trung cải thiện class khó nhất: D00
+
+============================================================================
